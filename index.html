@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>phys-viz | E&M Simulations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:    #0a0e1a;
+      --panel:   #0f1528;
+      --border:  #1e2a45;
+      --cyan:    #00e5ff;
+      --amber:   #ffaa00;
+      --green:   #39ff14;
+      --text:    #c8d8f0;
+      --muted:   #5a6a85;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--navy);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── background grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── header ── */
+    header {
+      position: relative;
+      z-index: 1;
+      padding: 3rem 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .wordmark {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--cyan);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      line-height: 1;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    h1 span {
+      color: var(--cyan);
+    }
+
+    .tagline {
+      margin-top: 0.75rem;
+      font-size: 1rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* ── divider ── */
+    .divider {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      max-width: 860px;
+      margin: 1.5rem auto 0;
+      padding: 0 2rem;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+    .divider span {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      white-space: nowrap;
+    }
+
+    /* ── grid ── */
+    main {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      max-width: 860px;
+      margin: 2.5rem auto 4rem;
+      padding: 0 2rem;
+    }
+
+    /* ── card ── */
+    .card {
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    /* accent bar */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent, var(--cyan));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.25s ease;
+    }
+
+    /* corner glow */
+    .card::after {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 160px; height: 160px;
+      background: radial-gradient(circle, var(--accent, var(--cyan)) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      border-color: var(--accent, var(--cyan));
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card:hover::before { transform: scaleX(1); }
+    .card:hover::after  { opacity: 0.08; }
+
+    .card[data-accent="cyan"]  { --accent: var(--cyan);  }
+    .card[data-accent="amber"] { --accent: var(--amber); }
+    .card[data-accent="green"] { --accent: var(--green); }
+    .card[data-accent="magenta"] { --accent: #ff4dd2; }
+
+    /* card header row */
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .sim-index {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent, var(--cyan));
+      letter-spacing: 0.15em;
+      padding-top: 0.2rem;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #fff;
+      line-height: 1.15;
+    }
+
+    .card-title span {
+      color: var(--accent, var(--cyan));
+    }
+
+    .card-desc {
+      font-size: 0.95rem;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    /* footer row */
+    .card-footer {
+      margin-top: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      color: var(--accent, var(--cyan));
+      border: 1px solid var(--accent, var(--cyan));
+      padding: 0.2em 0.55em;
+      border-radius: 2px;
+      opacity: 0.7;
+      text-transform: uppercase;
+    }
+
+    .launch-arrow {
+      font-size: 1.1rem;
+      color: var(--accent, var(--cyan));
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .card:hover .launch-arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* ── footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding-bottom: 2.5rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+    }
+
+    footer a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── entrance animation ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    header  { animation: fadeUp 0.5s ease both; }
+    .card   { animation: fadeUp 0.5s ease both; }
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
+    .card:nth-child(4) { animation-delay: 0.4s; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="wordmark">phys-viz</div>
+    <h1>E&amp;<span>M</span> Simulations</h1>
+    <p class="tagline">// WebXR · Three.js · VR</p>
+  </header>
+
+  <div class="divider"><span>SELECT SIMULATION</span></div>
+
+  <main>
+
+    <a class="card" href="./GaussVR/" data-accent="cyan">
+      <div class="card-header">
+        <div class="sim-index">SIM 01</div>
+        <div class="card-title">Gauss<span>VR</span></div>
+      </div>
+      <p class="card-desc">
+        Explore electric flux through adjustable Gaussian surfaces surrounding point charges.
+        Rotate surfaces, reposition charges, and read analytical flux values in real time.
+      </p>
+      <div class="card-footer">
+        <span class="badge">Gauss's Law</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="./MagneticForceVR/" data-accent="amber">
+      <div class="card-header">
+        <div class="sim-index">SIM 02</div>
+        <div class="card-title">Magnetic<span>Force</span>VR</div>
+      </div>
+      <p class="card-desc">
+        Fire charged particles through a configurable magnetic field and observe the resulting
+        Lorentz force trajectories. Adjust field strength, direction, and particle speed on the fly.
+      </p>
+      <div class="card-footer">
+        <span class="badge">Lorentz Force</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="./RHRVR/" data-accent="green">
+      <div class="card-header">
+        <div class="sim-index">SIM 03</div>
+        <div class="card-title">RHR<span>VR</span></div>
+      </div>
+      <p class="card-desc">
+        Practice the right-hand rule for cross products in three dimensions. Align your
+        virtual hand to the velocity and field vectors, then curl into the force direction.
+      </p>
+      <div class="card-footer">
+        <span class="badge">F = qv × B</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="./FaradayVR/" data-accent="magenta">
+      <div class="card-header">
+        <div class="sim-index">SIM 04</div>
+        <div class="card-title">Faraday<span>VR</span></div>
+      </div>
+      <p class="card-desc">
+        Move a magnetic dipole through a conducting loop and watch the induced EMF respond.
+        Freeze the field, examine flux change, and verify Lenz's law qualitatively.
+      </p>
+      <div class="card-footer">
+        <span class="badge">Faraday's Law</span>
+        <span class="launch-arrow">→</span>
+      </div>
+    </a>
+
+  </main>
+
+  <footer>
+    <a href="https://phys-viz.github.io/" target="_blank" rel="noopener">github.com/phys-viz</a>
+    &nbsp;·&nbsp; AP Physics C &nbsp;·&nbsp; VR
+  </footer>
+
+</body>
+</html>
